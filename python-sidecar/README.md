@@ -1,15 +1,17 @@
 # Python Sidecar
 
-Runs Python work through `POST /execute`.
+Runs Python scripts through `POST /execute`.
 
-Supported modes:
+The sidecar accepts only `script` and `content`. It executes the script directly in the FastAPI process and automatically prepends:
 
-- `task + params`: runs a system-defined allowlisted task.
-- `code + state`: runs experimental restricted Python code.
+```python
+import json
+import numpy as np
+```
 
-The restricted code mode is for experiments, not a complete security sandbox.
+The `content` object is injected as Python globals before `execute()` is called.
 
-## Run locally
+## Run Locally
 
 ```bash
 pip install -r requirements.txt
@@ -21,63 +23,69 @@ uvicorn app.main:app --host 0.0.0.0 --port 8001
 ```bash
 curl -s http://localhost:8001/execute \
   -H 'Content-Type: application/json' \
-  -d '{"task":"csv_column","params":{"path":"data/input.csv","column":"name"}}'
+  -d '{"script":"scores = np.array(employee_scores)\naverage = float(scores.mean())\npassed = [name for name, score in zip(employee_names, employee_scores) if score >= pass_score]\nprint(f\"average={average}\")\nreturn {\"average\": average, \"passedCount\": len(passed), \"passedEmployees\": passed}","content":{"employee_names":["Amy","Ben","Cara","Dylan"],"employee_scores":[82,64,91,73],"pass_score":75}}'
 ```
 
-## Restricted Code Example
-
-```bash
-curl -s http://localhost:8001/execute \
-  -H 'Content-Type: application/json' \
-  -d '{"code":"import numpy as np\nprint(np.array([1, 2, 3]).mean())"}'
-```
-
-Expected stdout:
-
-```text
-2.0
-```
-
-## Allowed Packages
-
-Installed packages are managed in:
-
-```text
-requirements.txt
-```
-
-Imports allowed inside runner code are managed separately in:
-
-```text
-allowed_packages.json
-```
-
-Example:
+Expected response:
 
 ```json
 {
-  "imports": ["numpy", "pandas"]
+  "result": {
+    "value": {
+      "average": 77.5,
+      "passedCount": 2,
+      "passedEmployees": ["Amy", "Cara"]
+    }
+  },
+  "stdout": "average=77.5\n",
+  "stderr": "",
+  "exitCode": 0,
+  "durationMs": 1,
+  "error": null
 }
 ```
 
-When adding a package, update both files and rebuild the sidecar image.
+## Execution Shape
 
-## Pandas Example
+The sidecar inserts `script` at the `<script>` position inside `execute()`:
 
-```bash
-curl -s http://localhost:8001/execute \
-  -H 'Content-Type: application/json' \
-  -d '{"code":"import pandas as pd\nprint(pd.Series([1, 2, 3]).mean())"}'
+```python
+import json
+import numpy as np
+
+def execute():
+    <script>
+
+__result__ = execute()
 ```
 
-## State Map Example
+For example, this request field:
 
-Small text values can be passed as a JSON object. The runner writes them into a temporary working directory before executing code, so each state key behaves like a relative file path.
-
-```bash
-curl -s http://localhost:8001/execute \
-  -H 'Content-Type: application/json' \
-  -d '{"code":"import numpy as np\nprint(np.loadtxt(\"numbers.csv\", delimiter=\",\" ).mean())","state":{"numbers.csv":"1,2,3\n4,5,6\n"}}'
+```json
+{
+  "script": "print(\"hello\")\nreturn 100"
+}
 ```
 
-Use this only for small text state. For large files or binary data, use a mounted volume, object storage, or multipart upload.
+becomes:
+
+```python
+import json
+import numpy as np
+
+def execute():
+    print("hello")
+    return 100
+
+__result__ = execute()
+```
+
+If `execute()` returns a non-null value, it is returned as:
+
+```json
+{
+  "result": {
+    "value": 100
+  }
+}
+```

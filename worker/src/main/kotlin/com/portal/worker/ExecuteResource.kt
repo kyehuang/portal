@@ -17,12 +17,10 @@ class ExecuteResource(
 ) {
     @POST
     fun execute(request: ExecuteRequest): ExecuteResponse {
-        if (request.task.isBlank() && request.code.isBlank()) {
-            throw WebApplicationException("task or code is required", Response.Status.BAD_REQUEST)
+        if (request.script.isBlank()) {
+            throw WebApplicationException("script is required", Response.Status.BAD_REQUEST)
         }
 
-        return pythonSidecarClient.execute(
-            ExecuteRequest(code = "import numpy as np\\nprint(np.loadtxt(\\\"numbers.csv\\\", delimiter=\\\",\\\").mean())\""),
-        )
+        return pythonSidecarClient.execute(request)
     }
 }

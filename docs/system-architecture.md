@@ -6,11 +6,8 @@
 flowchart LR
     Client[Client] -->|POST /execute| Worker[Quarkus Worker<br/>localhost:8081]
     Worker -->|REST Client<br/>POST /execute| Sidecar[Python Sidecar<br/>FastAPI localhost:8001]
-    Sidecar -->|subprocess + timeout| Runner[Restricted Python Runner]
-    Runner -->|AST validation| Policy[Import Allowlist<br/>allowed_packages.json]
-    Runner -->|writes small text state| TempDir[Temporary Work Dir]
-    Runner -->|imports installed packages| Packages[Python Packages<br/>requirements.txt]
-    Runner -->|stdout/stderr/exitCode| Sidecar
+    Sidecar -->|exec generated code| Runtime[FastAPI Python Process]
+    Runtime -->|stdout/stderr/exitCode| Sidecar
     Sidecar -->|ExecuteResponse| Worker
     Worker -->|ExecuteResponse| Client
 ```
@@ -27,81 +24,69 @@ flowchart TB
 
     subgraph PY["python-sidecar container"]
         FastAPI[FastAPI app/main.py<br/>POST /execute]
-        Executor[executor.py<br/>dispatch code or task]
-        RestrictedRunner[restricted_runner.py<br/>restricted code mode]
-        TaskRunner[csv_column.py<br/>fixed task mode]
-        Allowlist[allowed_packages.json<br/>numpy, pandas]
-        Requirements[requirements.txt<br/>installed packages]
-        Temp[Temp directory<br/>state map entries]
+        Template[Build Python code<br/>imports + execute wrapper]
+        Exec[exec in FastAPI process]
+        Requirements[requirements.txt<br/>fastapi, numpy, uvicorn]
 
-        FastAPI --> Executor
-        Executor -->|code present| RestrictedRunner
-        Executor -->|task present| TaskRunner
-        RestrictedRunner --> Allowlist
-        RestrictedRunner --> Requirements
-        RestrictedRunner --> Temp
+        FastAPI --> Template
+        Template --> Exec
+        Exec --> Requirements
     end
 
     SidecarClient -->|HTTP localhost:8001| FastAPI
 ```
 
-## Execute Request Modes
+## Execute Request
 
 ```mermaid
 flowchart TD
-    Request[ExecuteRequest] --> HasCode{code present?}
-    HasCode -->|yes| Restricted[restricted code mode]
-    HasCode -->|no| HasTask{task present?}
-    HasTask -->|yes| Task[fixed task mode]
-    HasTask -->|no| Error[400 / task or code is required]
-
-    Restricted --> Validate[AST validation]
-    Validate --> Imports[Allow imports from allowed_packages.json only]
-    Imports --> RunCode[Run code in subprocess]
-    RunCode --> CodeResponse[stdout / stderr / exitCode]
-
-    Task --> Lookup[Task allowlist lookup]
-    Lookup --> RunTask[Run fixed script in subprocess]
-    RunTask --> TaskResponse[result / stdout / stderr / exitCode]
+    Request[ExecuteRequest] --> HasScript{script present?}
+    HasScript -->|no| Error[400 / script is required]
+    HasScript -->|yes| Forward[Worker forwards to sidecar]
+    Forward --> Inject[Inject content as globals]
+    Inject --> Build[Build imports + execute wrapper]
+    Build --> Run[exec generated code]
+    Run --> Response[stdout / stderr / exitCode / durationMs]
 ```
 
-## State Map
-
-`state` is a small text map sent with code execution:
+Request:
 
 ```json
 {
-  "code": "import numpy as np\nprint(np.loadtxt(\"numbers.csv\", delimiter=\",\").mean())",
-  "state": {
-    "numbers.csv": "1,2,3\n4,5,6\n"
+  "script": "print(CurrentContent[\"Worker\"])",
+  "content": {
+    "CurrentContent": {"Worker": "Start"}
   }
 }
 ```
 
-The runner writes each `state` entry into a temporary working directory before executing code.
+Generated Python shape. The request `script` is inserted at `<script>`:
 
-Use `state` only for small text values. For large files or binary data, use a mounted volume, object storage, or multipart upload.
+```python
+import json
+import numpy as np
 
-## Container Limits
+def execute():
+    <script>
 
-The Python sidecar is the risky runtime boundary. CPU, memory, pids, filesystem, and privilege limits should be applied to the sidecar container.
-
-```mermaid
-flowchart TB
-    subgraph Limits["python-sidecar container limits"]
-        CPU[CPU limit]
-        Memory[Memory limit]
-        Pids[pids limit]
-        ReadOnly[read_only filesystem]
-        Tmpfs[tmpfs /tmp]
-        NoPriv[no-new-privileges]
-        CapDrop[cap_drop ALL]
-    end
-
-    Runner[Restricted Python Runner] --> Limits
+__result__ = execute()
 ```
 
-Recommended Docker Compose settings:
+## Current Limits
+
+The Python sidecar is the risky runtime boundary. The current implementation executes script directly in the FastAPI process.
+
+Current behavior:
+
+- No subprocess boundary.
+- No subprocess timeout.
+- No AST validation.
+- No import allowlist.
+- `json` and `numpy` are imported automatically.
+- `content` top-level keys become Python globals.
+- stdout and stderr are limited before being returned.
+
+Recommended Docker Compose settings still matter if this is used outside local development:
 
 ```yaml
 services:
@@ -120,6 +105,6 @@ services:
 
 ## Important Note
 
-This design is a restricted Python runner, not a complete secure sandbox.
+This is not a secure Python sandbox.
 
-The stronger isolation boundary should come from container or OS-level restrictions. AST checks and import allowlists are useful filters, but they should not be treated as the only security control.
+If scripts are untrusted, long-running, or allowed to perform expensive work, add an isolation boundary such as a subprocess, worker process, container job, timeout, or queue before production use.

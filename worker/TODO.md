@@ -2,115 +2,53 @@
 
 ## Worker 目標
 
-第一版 worker 不接收使用者輸入的 Python code，也不做通用 Python sandbox。
+目前 worker 不直接執行 Python。
 
-目前目標是：worker 透過 localhost HTTP 呼叫 Python sidecar，由 sidecar 執行固定的 Python script。
+worker 收到 `POST /execute` 後，只做基本 request 驗證，接著透過 localhost HTTP 呼叫 python-sidecar 的 FastAPI `/execute`。
 
-Python script 內容不一定是讀檔，第一個 use case 先做「讀取 CSV 並取得指定欄位」。
+python-sidecar 目前集中在 `python-sidecar/app/main.py`，收到 request 後直接在 FastAPI process 內執行 script，不再啟動 subprocess。
 
-## Quarkus + Python Sidecar
+## Request
 
-### 架構
-
-```text
-worker module
-  -> POST http://localhost:8001/execute
-  -> 傳入 task 名稱與 task 參數
-  -> 接收 stdout / stderr / exitCode / result / error
-
-python sidecar
-  -> FastAPI
-  -> 根據 task 執行系統內建的固定 Python script
-  -> 用 subprocess 執行時加 timeout
-```
-
-### Worker 呼叫範例
-
-```kotlin
-val result = httpClient.post("http://localhost:8001/execute")
-    .body(ExecuteRequest(code = code, state = state))
-    .execute()
-```
-
-### API 草案
-
-```http
-POST http://localhost:8001/execute
-```
-
-Request:
+`/execute` 目前只接受 `script` 與 `content`：
 
 ```json
 {
-  "task": "csv_column",
-  "params": {
-    "path": "/data/input.csv",
-    "column": "name"
+  "script": "print(CurrentContent[\"Worker\"])",
+  "content": {
+    "CurrentContent": {"Worker": "Start"}
   }
 }
 ```
 
-Response:
+`content` 是一個 map。python-sidecar 會把 top-level key 注入成 Python globals，所以 script 可以直接讀：
 
-```json
-{
-  "task": "csv_column",
-  "result": {
-    "columns": ["id", "name"],
-    "rowCount": 100,
-    "column": "name",
-    "values": ["Alice", "Bob"]
-  },
-  "stdout": "",
-  "stderr": "",
-  "exitCode": 0,
-  "durationMs": 42,
-  "error": null
-}
+```python
+print(CurrentContent["Worker"])
 ```
+
+## Python 執行模板
+
+python-sidecar 會自動補上 `json` 與 `numpy` import，並把 request 的 `script` 放在 `<script>` 位置。使用者不需要自己寫 import，也不要自己包 `def execute()`：
+
+```python
+import json
+import numpy as np
+
+def execute():
+    <script>
+
+__result__ = execute()
+```
+
+如果 script 使用 `return` 回傳非 null 值，response 會放在 `result.value`。
 
 ## 注意事項
 
-- 固定 Python 任務，不接受任意 Python code。
-- `/execute` 只接受 task 名稱與參數，不接受 script/code 字串。
-- sidecar 需要 allowlist task，例如 `csv_column` 對應固定的 Python script。
-- 欄位名稱由 worker 傳入；sidecar 只用它選取 CSV column，不把它當 Python code 執行。
-- 如果欄位不存在，要回傳明確錯誤。
-- subprocess 仍需要 timeout。
-- stdout / stderr 或 response size 要有限制。
-- CSV 檔案來源先用固定 volume 或固定路徑。
-- 後續如果需要更多 Python 任務，再擴充成 `/jobs/...` 類型 API。
-目標：worker 不直接執行 Python，而是透過 localhost HTTP 呼叫 python sidecar；sidecar 每次請求用
-subprocess 執行 script，並提供 timeout、stdout/stderr、exitCode 與錯誤結果。
-
-## 實驗：restricted code runner
-
-研究用 `/execute` 也支援傳入 `code` 與小型文字 `state` map：
-
-```json
-{
-  "code": "import numpy as np\nprint(np.array([1, 2, 3]).mean())",
-  "state": {}
-}
-```
-
-或：
-
-```json
-{
-  "code": "import numpy as np\nprint(np.loadtxt(\"numbers.csv\", delimiter=\",\").mean())",
-  "state": {
-    "numbers.csv": "1,2,3\n4,5,6\n"
-  }
-}
-```
-
-限制：
-
-- 只允許 `import numpy` / `import numpy as np` / `from numpy import ...`。
-- 允許 import 的套件由 `python-sidecar/allowed_packages.json` 管理。
-- 已安裝的套件由 `python-sidecar/requirements.txt` 管理。
-- 拒絕 `import os`、`import sys`、`import subprocess` 等其他 import。
-- 拒絕 `open()`、`eval()`、`exec()`、`__import__()` 等危險呼叫。
-- 拒絕 dunder name / dunder attribute。
-- 這是受限 runner，不是完整安全 sandbox。
+- 目前沒有 AST 限制。
+- 目前沒有 subprocess timeout。
+- script 會在 FastAPI process 內直接 `exec`。
+- `content` 只當資料注入，不會當 code 執行。
+- stdout / stderr 會回傳在 response 中。
+- response stdout / stderr 目前各自限制為 64 KiB 字元長度。
+- 如果 script 會長時間執行或可能卡住，需要後續再補 timeout / worker isolation。
