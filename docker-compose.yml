@@ -1,4 +1,16 @@
 services:
+  mariadb:
+    image: mariadb:10.11
+    ports:
+      - "3307:3306"
+    environment:
+      MARIADB_DATABASE: portal
+      MARIADB_USER: portal
+      MARIADB_PASSWORD: portal
+      MARIADB_ROOT_PASSWORD: portal-root
+    volumes:
+      - mariadb-10-data:/var/lib/mysql
+
   nats:
     image: nats:2.10-alpine
     ports:
@@ -16,3 +28,6 @@ services:
       - /tmp
     security_opt:
       - no-new-privileges:true
+
+volumes:
+  mariadb-10-data:
