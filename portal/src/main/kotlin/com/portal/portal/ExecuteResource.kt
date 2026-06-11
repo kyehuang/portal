@@ -1,11 +1,12 @@
 package com.portal.portal
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.ws.rs.BadRequestException
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
-import jakarta.ws.rs.WebApplicationException
+import jakarta.ws.rs.ServerErrorException
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.eclipse.microprofile.config.inject.ConfigProperty
@@ -23,7 +24,7 @@ class ExecuteResource(
     @POST
     fun execute(request: ExecuteRequest): ExecuteResponse {
         if (request.script.isBlank()) {
-            throw WebApplicationException("script is required", Response.Status.BAD_REQUEST)
+            throw BadRequestException("script is required")
         }
 
         val response =
@@ -31,7 +32,7 @@ class ExecuteResource(
                 executeSubject,
                 objectMapper.writeValueAsBytes(request),
                 executeTimeout,
-            ) ?: throw WebApplicationException("worker timed out", Response.Status.GATEWAY_TIMEOUT)
+            ) ?: throw ServerErrorException("worker timed out", Response.Status.GATEWAY_TIMEOUT)
 
         return objectMapper.readValue(response.data, ExecuteResponse::class.java)
     }

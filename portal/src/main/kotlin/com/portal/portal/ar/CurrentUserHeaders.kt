@@ -1,15 +1,14 @@
 package com.portal.portal.ar
 
-import jakarta.ws.rs.WebApplicationException
-import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.BadRequestException
 
 fun currentUserFromHeaders(userId: String?, sectionId: String?): CurrentUser {
     if (userId.isNullOrBlank()) {
-        throw WebApplicationException("X-User-Id header is required", Response.Status.BAD_REQUEST)
+        throw BadRequestException("X-User-Id header is required")
     }
 
     if (sectionId.isNullOrBlank()) {
-        throw WebApplicationException("X-Section-Id header is required", Response.Status.BAD_REQUEST)
+        throw BadRequestException("X-Section-Id header is required")
     }
 
     return CurrentUser(userId.trim(), sectionId.trim())
