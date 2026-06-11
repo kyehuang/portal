@@ -12,3 +12,4 @@ data class User(
 
 data class CreateUserRequest(val name: String, val email: String)
 data class UpdateUserRequest(val name: String, val email: String)
+data class AddUserSectionRequest(val sectionId: String)

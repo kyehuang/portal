@@ -44,6 +44,16 @@ class UserService(private val userRepo: UserRepo) {
         return get(id)
     }
 
+    suspend fun addSection(id: String, request: AddUserSectionRequest) {
+        get(id)
+        val sectionId = request.sectionId.trim()
+        if (sectionId.isEmpty()) {
+            throw WebApplicationException("sectionId is required", Response.Status.BAD_REQUEST)
+        }
+
+        userRepo.addSection(id, sectionId)
+    }
+
     suspend fun delete(id: String) {
         val deleted = userRepo.delete(id)
         if (deleted == 0) {

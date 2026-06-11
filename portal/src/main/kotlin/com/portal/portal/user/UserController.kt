@@ -33,6 +33,13 @@ class UserController(private val userService: UserService) {
     @Path("/{id}")
     suspend fun update(@PathParam("id") id: String, request: UpdateUserRequest): User = userService.update(id, request)
 
+    @POST
+    @Path("/{id}/sections")
+    suspend fun addSection(@PathParam("id") id: String, request: AddUserSectionRequest): Response {
+        userService.addSection(id, request)
+        return Response.noContent().build()
+    }
+
     @DELETE
     @Path("/{id}")
     suspend fun delete(@PathParam("id") id: String): Response {

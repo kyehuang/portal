@@ -10,6 +10,10 @@ class UserRepo(private val jdbi: Jdbi) {
 
     suspend fun list(): List<User> = jdbi.io { dao.list() }
     suspend fun findById(id: String): User? = jdbi.io { dao.findById(id) }
+    suspend fun isMemberOfSection(userId: String, sectionId: String): Boolean =
+        jdbi.io { dao.isMemberOfSection(userId, sectionId) }
+
+    suspend fun addSection(userId: String, sectionId: String): Int = jdbi.io { dao.addSection(userId, sectionId) }
     suspend fun insert(id: String, name: String, email: String): Int = jdbi.io { dao.insert(id, name, email) }
     suspend fun update(id: String, name: String, email: String): Int = jdbi.io { dao.update(id, name, email) }
     suspend fun delete(id: String): Int = jdbi.io { dao.delete(id) }

@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AR Tester</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --line: #d8dde6;
+      --text: #17202a;
+      --muted: #657080;
+      --accent: #2364aa;
+      --danger: #b42318;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+      padding: 16px 24px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 650;
+    }
+
+    main {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+      padding: 16px 24px 32px;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      font-weight: 650;
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--text);
+      font: inherit;
+      padding: 8px 9px;
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
+
+    button {
+      border: 1px solid #1f5b98;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 650;
+      padding: 8px 10px;
+    }
+
+    button.secondary {
+      background: #fff;
+      color: var(--accent);
+    }
+
+    button.danger {
+      border-color: var(--danger);
+      background: #fff;
+      color: var(--danger);
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .results {
+      display: grid;
+      gap: 10px;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .item h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 7px;
+      background: #f9fafb;
+    }
+
+    pre {
+      max-height: 260px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin: 0;
+      padding: 10px;
+      background: #111827;
+      color: #e5e7eb;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+
+    .status {
+      min-height: 20px;
+      color: var(--muted);
+    }
+
+    .error {
+      color: var(--danger);
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AR Tester</h1>
+  </header>
+
+  <main>
+    <div class="stack">
+      <section class="stack">
+        <h2>使用者與 Section</h2>
+        <div class="grid">
+          <label>API Base
+            <input id="apiBase" value="" placeholder="同源留空">
+          </label>
+          <label>Section ID
+            <input id="sectionId" value="section-a">
+          </label>
+          <label>User ID
+            <input id="userId" placeholder="建立 user 後可填入">
+          </label>
+          <label>User Name
+            <input id="userName" value="Tester">
+          </label>
+          <label>Email
+            <input id="userEmail" value="tester@example.com">
+          </label>
+        </div>
+        <div class="actions">
+          <button type="button" id="createUser">建立 User</button>
+          <button type="button" id="addSection" class="secondary">加入 Section</button>
+        </div>
+      </section>
+
+      <section class="stack">
+        <h2>建立 AR</h2>
+        <label>Title
+          <input id="arTitle" value="第一個 AR">
+        </label>
+        <label>Description
+          <textarea id="arDescription"></textarea>
+        </label>
+        <div class="grid">
+          <label>Priority
+            <select id="arPriority">
+              <option value="">預設 p2</option>
+              <option value="p0">p0</option>
+              <option value="p1">p1</option>
+              <option value="p2">p2</option>
+            </select>
+          </label>
+          <label>Status
+            <select id="arStatus">
+              <option value="">預設 in_progress</option>
+              <option value="in_progress">in_progress</option>
+              <option value="done">done</option>
+            </select>
+          </label>
+          <label>Assignee
+            <input id="arAssignee">
+          </label>
+          <label>Due Date
+            <input id="arDueDate" type="datetime-local">
+          </label>
+        </div>
+        <label>Tags
+          <input id="arTags" placeholder="tag1,中文,urgent">
+        </label>
+        <button type="button" id="createAr">建立 AR</button>
+      </section>
+
+      <section class="stack">
+        <h2>建立 Sub AR</h2>
+        <label>Parent AR ID
+          <input id="parentArId">
+        </label>
+        <label>Title
+          <input id="subArTitle" value="第一個 Sub AR">
+        </label>
+        <label>Description
+          <textarea id="subArDescription"></textarea>
+        </label>
+        <div class="grid">
+          <label>Priority
+            <select id="subArPriority">
+              <option value="">預設 p2</option>
+              <option value="p0">p0</option>
+              <option value="p1">p1</option>
+              <option value="p2">p2</option>
+            </select>
+          </label>
+          <label>Status
+            <select id="subArStatus">
+              <option value="">預設 in_progress</option>
+              <option value="in_progress">in_progress</option>
+              <option value="done">done</option>
+            </select>
+          </label>
+          <label>Assignee
+            <input id="subArAssignee">
+          </label>
+          <label>Due Date
+            <input id="subArDueDate" type="datetime-local">
+          </label>
+        </div>
+        <label>Tags
+          <input id="subArTags" placeholder="tag1,中文,urgent">
+        </label>
+        <button type="button" id="createSubAr">建立 Sub AR</button>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="stack">
+        <h2>查詢</h2>
+        <div class="grid">
+          <label>Tag
+            <input id="filterTag">
+          </label>
+          <label>Priority
+            <select id="filterPriority">
+              <option value="">全部</option>
+              <option value="p0">p0</option>
+              <option value="p1">p1</option>
+              <option value="p2">p2</option>
+            </select>
+          </label>
+          <label>Status
+            <select id="filterStatus">
+              <option value="">全部</option>
+              <option value="in_progress">in_progress</option>
+              <option value="done">done</option>
+            </select>
+          </label>
+          <label>Assignee
+            <input id="filterAssignee">
+          </label>
+        </div>
+        <div class="actions">
+          <button type="button" id="loadArs">查 AR</button>
+          <button type="button" id="loadSubArs" class="secondary">查 Sub AR</button>
+        </div>
+      </section>
+
+      <section class="stack">
+        <h2>結果</h2>
+        <div id="status" class="status"></div>
+        <div id="results" class="results"></div>
+      </section>
+
+      <section class="stack">
+        <h2>Raw Response</h2>
+        <pre id="raw">尚無資料</pre>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function apiBase() {
+      return $("apiBase").value.trim().replace(/\/$/, "");
+    }
+
+    function headers() {
+      return {
+        "Content-Type": "application/json",
+        "X-User-Id": $("userId").value.trim(),
+        "X-Section-Id": $("sectionId").value.trim(),
+      };
+    }
+
+    function compact(object) {
+      return Object.fromEntries(Object.entries(object).filter(([, value]) => {
+        if (Array.isArray(value)) return value.length > 0;
+        return value !== null && value !== undefined && value !== "";
+      }));
+    }
+
+    function tags(id) {
+      return $(id).value
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+    }
+
+    function queryString() {
+      const params = new URLSearchParams(compact({
+        tag: $("filterTag").value.trim(),
+        priority: $("filterPriority").value,
+        status: $("filterStatus").value,
+        assignee: $("filterAssignee").value.trim(),
+      }));
+      const text = params.toString();
+      return text ? `?${text}` : "";
+    }
+
+    async function request(path, options = {}) {
+      const response = await fetch(`${apiBase()}${path}`, options);
+      const text = await response.text();
+      const body = text ? JSON.parse(text) : null;
+      $("raw").textContent = JSON.stringify(body, null, 2);
+      if (!response.ok) {
+        throw new Error(body?.message || text || `${response.status} ${response.statusText}`);
+      }
+      return body;
+    }
+
+    function setStatus(message, error = false) {
+      $("status").textContent = message;
+      $("status").className = error ? "status error" : "status";
+    }
+
+    async function run(action) {
+      try {
+        setStatus("處理中...");
+        await action();
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    }
+
+    function renderItems(items, type) {
+      $("results").innerHTML = "";
+      if (!items.length) {
+        $("results").innerHTML = "<div class=\"status\">沒有資料</div>";
+        return;
+      }
+
+      for (const item of items) {
+        const node = document.createElement("div");
+        node.className = "item";
+        node.innerHTML = `
+          <h3>${escapeHtml(item.title)}</h3>
+          <div class="meta">
+            <span class="pill">${escapeHtml(type)}</span>
+            <span class="pill">${escapeHtml(item.id)}</span>
+            ${item.parentArId ? `<span class="pill">parent ${escapeHtml(item.parentArId)}</span>` : ""}
+            <span class="pill">${escapeHtml(item.section)}</span>
+            <span class="pill">${escapeHtml(item.priority)}</span>
+            <span class="pill">${escapeHtml(item.status)}</span>
+            ${item.assignee ? `<span class="pill">assignee ${escapeHtml(item.assignee)}</span>` : ""}
+          </div>
+          <p>${escapeHtml(item.description || "")}</p>
+          <div class="meta">${(item.tags || []).map((tag) => `<span class="pill">#${escapeHtml(tag)}</span>`).join("")}</div>
+          <div class="actions">
+            <button type="button" class="secondary" data-action="copy">複製 ID</button>
+            <button type="button" class="secondary" data-action="progress">in_progress</button>
+            <button type="button" class="secondary" data-action="done">done</button>
+            <button type="button" class="danger" data-action="delete">刪除</button>
+          </div>
+        `;
+
+        node.querySelector("[data-action='copy']").addEventListener("click", () => {
+          if (type === "AR") $("parentArId").value = item.id;
+          navigator.clipboard?.writeText(item.id);
+          setStatus(`已複製 ${item.id}`);
+        });
+        node.querySelector("[data-action='progress']").addEventListener("click", () => updateStatus(type, item.id, "in_progress"));
+        node.querySelector("[data-action='done']").addEventListener("click", () => updateStatus(type, item.id, "done"));
+        node.querySelector("[data-action='delete']").addEventListener("click", () => deleteItem(type, item.id));
+        $("results").appendChild(node);
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    async function loadArs() {
+      const items = await request(`/ars${queryString()}`);
+      renderItems(items, "AR");
+      setStatus(`AR ${items.length} 筆`);
+    }
+
+    async function loadSubArs() {
+      const items = await request(`/sub-ars${queryString()}`);
+      renderItems(items, "Sub AR");
+      setStatus(`Sub AR ${items.length} 筆`);
+    }
+
+    function updateStatus(type, id, status) {
+      run(async () => {
+        const path = type === "AR" ? `/ars/${id}` : `/sub-ars/${id}`;
+        await request(path, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        });
+        type === "AR" ? await loadArs() : await loadSubArs();
+      });
+    }
+
+    function deleteItem(type, id) {
+      run(async () => {
+        const path = type === "AR" ? `/ars/${id}` : `/sub-ars/${id}`;
+        await request(path, { method: "DELETE" });
+        type === "AR" ? await loadArs() : await loadSubArs();
+      });
+    }
+
+    $("createUser").addEventListener("click", () => run(async () => {
+      const user = await request("/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: $("userName").value.trim(),
+          email: $("userEmail").value.trim(),
+        }),
+      });
+      $("userId").value = user.id;
+      setStatus(`已建立 user ${user.id}`);
+    }));
+
+    $("addSection").addEventListener("click", () => run(async () => {
+      await request(`/users/${$("userId").value.trim()}/sections`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sectionId: $("sectionId").value.trim() }),
+      });
+      setStatus("已加入 section");
+    }));
+
+    $("createAr").addEventListener("click", () => run(async () => {
+      await request("/ars", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(compact({
+          title: $("arTitle").value,
+          description: $("arDescription").value,
+          priority: $("arPriority").value,
+          status: $("arStatus").value,
+          tags: tags("arTags"),
+          assignee: $("arAssignee").value.trim(),
+          dueDate: $("arDueDate").value,
+        })),
+      });
+      await loadArs();
+    }));
+
+    $("createSubAr").addEventListener("click", () => run(async () => {
+      await request("/sub-ars", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(compact({
+          parentArId: $("parentArId").value.trim(),
+          title: $("subArTitle").value,
+          description: $("subArDescription").value,
+          priority: $("subArPriority").value,
+          status: $("subArStatus").value,
+          tags: tags("subArTags"),
+          assignee: $("subArAssignee").value.trim(),
+          dueDate: $("subArDueDate").value,
+        })),
+      });
+      await loadSubArs();
+    }));
+
+    $("loadArs").addEventListener("click", () => run(loadArs));
+    $("loadSubArs").addEventListener("click", () => run(loadSubArs));
+  </script>
+</body>
+</html>

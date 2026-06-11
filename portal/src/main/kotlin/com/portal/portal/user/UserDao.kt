@@ -25,6 +25,25 @@ interface UserDao {
     )
     fun findById(@Bind("id") id: String): User?
 
+    @SqlQuery(
+        """
+        SELECT COUNT(*) > 0
+        FROM user_sections
+        WHERE user_id = :userId
+          AND section_id = :sectionId
+        """,
+    )
+    fun isMemberOfSection(@Bind("userId") userId: String, @Bind("sectionId") sectionId: String): Boolean
+
+    @SqlUpdate(
+        """
+        INSERT INTO user_sections (user_id, section_id)
+        VALUES (:userId, :sectionId)
+        ON DUPLICATE KEY UPDATE section_id = VALUES(section_id)
+        """,
+    )
+    fun addSection(@Bind("userId") userId: String, @Bind("sectionId") sectionId: String): Int
+
     @SqlUpdate(
         """
         INSERT INTO users (id, name, email)
