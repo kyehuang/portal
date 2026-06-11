@@ -1,5 +1,6 @@
-package com.portal.portal.ar
+package com.portal.portal.ar.dao
 
+import com.portal.portal.ar.model.ArRow
 import org.jdbi.v3.sqlobject.customizer.Bind
 import org.jdbi.v3.sqlobject.kotlin.RegisterKotlinMapper
 import org.jdbi.v3.sqlobject.statement.SqlQuery

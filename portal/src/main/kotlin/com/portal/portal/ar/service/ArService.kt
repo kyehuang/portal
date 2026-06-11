@@ -1,6 +1,15 @@
-package com.portal.portal.ar
+package com.portal.portal.ar.service
 
 import com.github.f4b6a3.uuid.UuidCreator
+import com.portal.portal.ar.model.Ar
+import com.portal.portal.ar.model.CurrentUser
+import com.portal.portal.ar.model.PRIORITY_P0
+import com.portal.portal.ar.model.PRIORITY_P1
+import com.portal.portal.ar.model.PRIORITY_P2
+import com.portal.portal.ar.model.STATUS_DONE
+import com.portal.portal.ar.model.STATUS_IN_PROGRESS
+import com.portal.portal.ar.model.SubAr
+import com.portal.portal.ar.repo.ArRepo
 import com.portal.portal.user.UserRepo
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.ws.rs.BadRequestException

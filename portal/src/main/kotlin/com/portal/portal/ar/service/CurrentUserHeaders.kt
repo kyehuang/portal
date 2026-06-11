@@ -1,5 +1,6 @@
-package com.portal.portal.ar
+package com.portal.portal.ar.service
 
+import com.portal.portal.ar.model.CurrentUser
 import jakarta.ws.rs.BadRequestException
 
 fun currentUserFromHeaders(userId: String?, sectionId: String?): CurrentUser {

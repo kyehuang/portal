@@ -1,4 +1,4 @@
-package com.portal.portal.ar
+package com.portal.portal.ar.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import java.time.LocalDateTime

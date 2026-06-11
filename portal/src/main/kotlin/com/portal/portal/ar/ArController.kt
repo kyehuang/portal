@@ -2,7 +2,11 @@ package com.portal.portal.ar
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import jakarta.ws.rs.Consumes
+import com.portal.portal.ar.model.Ar
+import com.portal.portal.ar.model.CreateArRequest
+import com.portal.portal.ar.model.UpdateArRequest
+import com.portal.portal.ar.service.ArService
+import com.portal.portal.ar.service.currentUserFromHeaders
 import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.HeaderParam
@@ -10,9 +14,7 @@ import jakarta.ws.rs.POST
 import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
 import jakarta.ws.rs.QueryParam
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.jboss.resteasy.reactive.ResponseStatus
 

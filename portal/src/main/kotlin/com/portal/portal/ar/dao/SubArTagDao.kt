@@ -1,5 +1,6 @@
-package com.portal.portal.ar
+package com.portal.portal.ar.dao
 
+import com.portal.portal.ar.model.SubArTagRow
 import org.jdbi.v3.sqlobject.customizer.Bind
 import org.jdbi.v3.sqlobject.customizer.BindList
 import org.jdbi.v3.sqlobject.kotlin.RegisterKotlinMapper
